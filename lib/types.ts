@@ -118,3 +118,31 @@ export interface DeployResponse {
   deploymentUrl?: string;
   error?: string;
 }
+
+// ─── AI / LLM Types ───────────────────────────────────────────────────────────
+
+export type AiModel = "claude" | "gpt4";
+
+export interface AiPlanStep {
+  name: string;
+  action: "apply_template" | "create_file" | "update_file" | "multi_step";
+  template?: string;
+  path?: string;
+  params?: Record<string, string>;
+}
+
+export interface AiRequest {
+  /** Natural-language task description */
+  prompt: string;
+  /** Optional structured context injected into the system prompt */
+  context?: Record<string, unknown>;
+  /** LLM backend to use (default: "claude") */
+  model?: AiModel;
+}
+
+export interface AiResponse {
+  steps: AiPlanStep[];
+  reasoning: string;
+  estimatedTime?: string;
+  error?: string;
+}
