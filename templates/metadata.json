@@ -1,0 +1,63 @@
+{
+  "version": "1.0.0",
+  "templates": [
+    {
+      "name": "crud",
+      "description": "Full CRUD scaffold: model type, API route, list page, and form",
+      "category": "crud",
+      "path": "crud",
+      "params": [
+        { "name": "MODEL_NAME", "description": "PascalCase model name (e.g. Case)", "required": true },
+        { "name": "MODEL_SLUG", "description": "kebab-case model slug (e.g. case)", "required": true },
+        { "name": "FIELDS", "description": "Comma-separated field names (e.g. title,status)", "required": true }
+      ],
+      "files": ["template.ts", "template.tsx", "form.tsx"]
+    },
+    {
+      "name": "landing",
+      "description": "Landing page with hero section and CTA",
+      "category": "landing",
+      "path": "landing",
+      "params": [
+        { "name": "PAGE_TITLE", "description": "Page heading (e.g. About Us)", "required": true },
+        { "name": "PAGE_PATH", "description": "URL path segment (e.g. about)", "required": true },
+        { "name": "ENTITY_DESCRIPTION", "description": "Short description shown in hero", "required": false, "default": "Welcome to our platform" }
+      ],
+      "files": ["template.tsx"]
+    },
+    {
+      "name": "dashboard",
+      "description": "Dashboard section page with stats and a data table placeholder",
+      "category": "dashboard",
+      "path": "dashboard",
+      "params": [
+        { "name": "SECTION_NAME", "description": "Human-readable section name (e.g. Analytics)", "required": true },
+        { "name": "SECTION_SLUG", "description": "kebab-case slug (e.g. analytics)", "required": true },
+        { "name": "ENTITY_DESCRIPTION", "description": "Brief description of this section", "required": false, "default": "Dashboard section" }
+      ],
+      "files": ["template.tsx"]
+    },
+    {
+      "name": "auth",
+      "description": "Authentication pages (login / register)",
+      "category": "auth",
+      "path": "auth",
+      "params": [
+        { "name": "APP_NAME", "description": "Application name shown on auth pages", "required": true }
+      ],
+      "files": ["template.tsx"]
+    },
+    {
+      "name": "api",
+      "description": "Next.js App Router API route with GET/POST/PUT/DELETE handlers",
+      "category": "api",
+      "path": "api",
+      "params": [
+        { "name": "MODEL_NAME", "description": "PascalCase model name (e.g. Case)", "required": true },
+        { "name": "MODEL_SLUG", "description": "kebab-case model slug (e.g. case)", "required": true },
+        { "name": "FIELDS", "description": "Comma-separated field names", "required": true }
+      ],
+      "files": ["template.ts"]
+    }
+  ]
+}
