@@ -119,6 +119,78 @@ export interface DeployResponse {
   error?: string;
 }
 
+// ─── Diagnostic / Execution Types ─────────────────────────────────────────────
+
+export interface DiagnosticError {
+  file: string;
+  line?: number;
+  column?: number;
+  /** TypeScript error code, e.g. "TS2552" */
+  code?: string;
+  message: string;
+  severity: "error" | "warning" | "info";
+  source: "tsc" | "eslint" | "runtime";
+  /** AI-generated fix suggestion */
+  suggestion?: string;
+}
+
+export interface ExecutionResult {
+  success: boolean;
+  filesCreated: string[];
+  errors: DiagnosticError[];
+  warnings: DiagnosticError[];
+  duration: number;
+  rollbackAvailable: boolean;
+}
+
+export interface ExecutionTransaction {
+  id: string;
+  files: Array<{ path: string; content: string; originalContent?: string }>;
+  createdAt: Date;
+  status: "staged" | "committed" | "rolled_back";
+  rollbackCommitSha?: string;
+}
+
+export interface CorrectionRequest {
+  originalSteps: AiPlanStep[];
+  errors: DiagnosticError[];
+  attemptNumber: number;
+  maxAttempts: number;
+  context: Record<string, unknown>;
+}
+
+export interface CorrectionResponse {
+  correctedSteps: AiPlanStep[];
+  explanation: string;
+  /** 0–1: how confident Claude is in the fix */
+  confidence: number;
+  shouldRetry: boolean;
+}
+
+export interface ExecuteRequest {
+  steps: AiPlanStep[];
+  autoRetry?: boolean;
+  maxRetries?: number;
+  dryRun?: boolean;
+}
+
+export interface CorrectionRecord {
+  originalStep: string;
+  issue: string;
+  correction: string;
+  retryAttempt: number;
+}
+
+export interface ExecuteResponse {
+  success: boolean;
+  filesCreated: string[];
+  errors: DiagnosticError[];
+  autoFixed: boolean;
+  executionTime: string;
+  corrections?: CorrectionRecord[];
+  transactionId?: string;
+}
+
 // ─── AI / LLM Types ───────────────────────────────────────────────────────────
 
 export type AiModel = "claude" | "gpt4";
@@ -128,6 +200,8 @@ export interface AiPlanStep {
   action: "apply_template" | "create_file" | "update_file" | "multi_step";
   template?: string;
   path?: string;
+  /** Raw file content — used by create_file / update_file steps */
+  content?: string;
   params?: Record<string, string>;
 }
 

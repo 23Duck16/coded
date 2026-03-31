@@ -1,4 +1,6 @@
 import type {
+  AiPlanStep,
+  ExecuteResponse,
   WorkflowContext,
   WorkflowName,
   WorkflowRequest,
@@ -103,6 +105,47 @@ export async function runWorkflow(
     steps: stepResults,
     deploymentUrl,
   };
+}
+
+// ─── AI-Planned Execution Integration ────────────────────────────────────────
+
+/**
+ * Execute a set of AI-planned steps via the execution layer (with auto-retry).
+ *
+ * This is the integration point between the AI planning endpoint (/api/ai)
+ * and the self-healing execution engine (/api/execute).
+ *
+ * Usage:
+ *   const plan = await fetch('/api/ai', { ... }).then(r => r.json());
+ *   const result = await runAiStepsWithExecution(plan.steps, {
+ *     autoRetry: true, maxRetries: 3
+ *   });
+ */
+export async function runAiStepsWithExecution(
+  steps: AiPlanStep[],
+  options: { autoRetry?: boolean; maxRetries?: number; dryRun?: boolean } = {}
+): Promise<ExecuteResponse> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const res = await fetch(`${appUrl}/api/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      steps,
+      autoRetry: options.autoRetry ?? true,
+      maxRetries: options.maxRetries ?? 3,
+      dryRun: options.dryRun ?? false,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    throw new Error(
+      `Execute API returned ${res.status} ${res.statusText}: ${errorBody}`
+    );
+  }
+
+  return res.json() as Promise<ExecuteResponse>;
 }
 
 // ─── Workflow Definitions ─────────────────────────────────────────────────────
