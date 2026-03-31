@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { planWithClaude } from "@/lib/ai";
 import { analyzeRepo } from "@/lib/codebase-analyzer";
+import { extractAuth } from "@/lib/auth-middleware";
+import { checkRateLimit, consumeTokens, defaultLimitConfig } from "@/lib/rate-limiter";
+import { logEvent } from "@/lib/audit-logger";
 import type { AiRequest, AiResponse } from "@/lib/types";
+
+/** Rough token estimate per step when actual usage is not returned by the API */
+const TOKENS_PER_STEP_ESTIMATE = 50;
 
 /**
  * POST /api/ai
@@ -30,6 +36,41 @@ import type { AiRequest, AiResponse } from "@/lib/types";
 export async function POST(
   req: NextRequest
 ): Promise<NextResponse<AiResponse | { error: string }>> {
+  const startTime = Date.now();
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  let auth;
+  try {
+    auth = await extractAuth(req, { requireAuth: false });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unauthorized" },
+      { status: 401 }
+    );
+  }
+  const userId = auth?.userId ?? "anonymous";
+
+  // ── Rate limit ────────────────────────────────────────────────────────────
+  const rateLimitStatus = await checkRateLimit(userId, defaultLimitConfig);
+  if (!rateLimitStatus.allowed) {
+    await logEvent({
+      userId,
+      action: "ai_planning",
+      resource: "/api/ai",
+      status: "failure",
+      details: { reason: "Rate limit exceeded" },
+      ipAddress: req.headers.get("x-forwarded-for") ?? undefined,
+      userAgent: req.headers.get("user-agent") ?? undefined,
+    });
+    return NextResponse.json(
+      { error: "Rate limit exceeded" },
+      {
+        status: 429,
+        headers: { "X-RateLimit-Reset": rateLimitStatus.resetAt.toISOString() },
+      }
+    );
+  }
+
   let body: AiRequest;
 
   try {
@@ -71,11 +112,41 @@ export async function POST(
 
   try {
     const result = await planWithClaude({ ...body, context: enrichedContext });
+
+    const duration = Date.now() - startTime;
+    const tokensUsed = result.steps?.length ? result.steps.length * TOKENS_PER_STEP_ESTIMATE : 0;
+    await consumeTokens(userId, tokensUsed);
+    await logEvent({
+      userId,
+      action: "ai_planning",
+      resource: "/api/ai",
+      status: result.error ? "failure" : "success",
+      details: {
+        prompt: body.prompt.slice(0, 200),
+        stepsCount: result.steps?.length ?? 0,
+      },
+      tokensUsed,
+      duration,
+      ipAddress: req.headers.get("x-forwarded-for") ?? undefined,
+      userAgent: req.headers.get("user-agent") ?? undefined,
+    });
+
     return NextResponse.json(result, { status: 200 });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Internal server error";
     console.error("[api/ai] Error:", err);
+
+    await logEvent({
+      userId,
+      action: "ai_planning",
+      resource: "/api/ai",
+      status: "failure",
+      details: { error: message },
+      duration: Date.now() - startTime,
+      ipAddress: req.headers.get("x-forwarded-for") ?? undefined,
+      userAgent: req.headers.get("user-agent") ?? undefined,
+    });
 
     if (message.includes("ANTHROPIC_API_KEY")) {
       return NextResponse.json({ error: message }, { status: 503 });
