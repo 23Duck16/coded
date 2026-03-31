@@ -119,6 +119,59 @@ export interface DeployResponse {
   error?: string;
 }
 
+// ─── Auth Types ───────────────────────────────────────────────────────────────
+
+export interface AuthContext {
+  userId: string;
+  role: "admin" | "user";
+  /** ISO timestamp of when the token was issued */
+  issuedAt: string;
+  /** ISO timestamp of when the token expires */
+  expiresAt: string;
+}
+
+// ─── Audit Types ──────────────────────────────────────────────────────────────
+
+export type AuditEventType =
+  | "ai.plan"
+  | "agent.execute"
+  | "workflow.run"
+  | "deploy.trigger"
+  | "auth.token_issued"
+  | "auth.token_rejected"
+  | "rate_limit.exceeded"
+  | "permission.denied";
+
+export interface AuditEvent {
+  id: string;
+  timestamp: string;
+  type: AuditEventType;
+  userId: string;
+  role: string;
+  resource?: string;
+  action?: string;
+  result: "success" | "failure" | "denied";
+  metadata?: Record<string, unknown>;
+}
+
+// ─── Execution History Types ───────────────────────────────────────────────────
+
+export type ExecutionStatus = "pending" | "running" | "success" | "failed";
+
+export interface ExecutionRecord {
+  id: string;
+  timestamp: string;
+  userId: string;
+  type: "ai" | "agent" | "workflow" | "deploy";
+  input: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  status: ExecutionStatus;
+  durationMs?: number;
+  error?: string;
+  /** Snapshot of files before execution (for rollback). null value means file did not exist. */
+  rollbackSnapshot?: Record<string, string | null>;
+}
+
 // ─── AI / LLM Types ───────────────────────────────────────────────────────────
 
 export type AiModel = "claude" | "gpt4";
