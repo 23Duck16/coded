@@ -19,6 +19,12 @@ interface AgentForm {
   description: string;
 }
 
+interface Phase5Form {
+  prompt: string;
+  userId: string;
+  role: "admin" | "user" | "readonly";
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -37,10 +43,18 @@ export default function DashboardPage() {
     description: "Add hello page",
   });
 
+  const [phase5Form, setPhase5Form] = useState<Phase5Form>({
+    prompt: "Create a product catalog dashboard with CRUD and search",
+    userId: "demo-user",
+    role: "user",
+  });
+
   const [workflowResult, setWorkflowResult] = useState<unknown>(null);
   const [agentResult, setAgentResult] = useState<unknown>(null);
+  const [phase5Result, setPhase5Result] = useState<unknown>(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [agentLoading, setAgentLoading] = useState(false);
+  const [phase5Loading, setPhase5Loading] = useState(false);
 
   // ── Workflow submit ──
   const handleWorkflowSubmit = async (e: React.FormEvent) => {
@@ -109,6 +123,31 @@ export default function DashboardPage() {
     }
   };
 
+  // ── Phase 5 submit ──
+  const handlePhase5Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPhase5Loading(true);
+    setPhase5Result(null);
+
+    try {
+      const res = await fetch("/api/phase5", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: phase5Form.prompt,
+          userId: phase5Form.userId || undefined,
+          role: phase5Form.role,
+        }),
+      });
+      const data: unknown = await res.json();
+      setPhase5Result(data);
+    } catch (err) {
+      setPhase5Result({ error: err instanceof Error ? err.message : "Unknown error" });
+    } finally {
+      setPhase5Loading(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
       {/* Header */}
@@ -136,6 +175,12 @@ export default function DashboardPage() {
           <a href="/api/deploy" style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
             Deploy API
           </a>
+          <a href="/api/ai" style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
+            AI API
+          </a>
+          <a href="/api/phase5" style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
+            Phase 5 API
+          </a>
         </nav>
       </header>
 
@@ -146,14 +191,14 @@ export default function DashboardPage() {
             App Engine Dashboard
           </h1>
           <p style={{ color: "#64748b", marginTop: "0.75rem", fontSize: "1.1rem" }}>
-            Run workflows and agent actions to scaffold features into this repo.
+            Run workflows, direct file agents, and the autonomous agent pipeline from one place.
           </p>
         </section>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
             gap: "2rem",
           }}
         >
@@ -290,6 +335,64 @@ export default function DashboardPage() {
 
             {agentResult !== null && <ResultBox result={agentResult} />}
           </Panel>
+
+          {/* ── Phase 5 Panel ── */}
+          <Panel
+            title="🧠 Run Autonomous Agent"
+            subtitle="Turn a natural-language prompt into a planned, executed, and validated scaffold"
+          >
+            <form onSubmit={handlePhase5Submit}>
+              <Field label="Prompt">
+                <textarea
+                  value={phase5Form.prompt}
+                  onChange={(e) =>
+                    setPhase5Form((p) => ({ ...p, prompt: e.target.value }))
+                  }
+                  rows={5}
+                  style={{ ...inputStyle, fontFamily: "monospace", fontSize: "0.8rem" }}
+                />
+              </Field>
+
+              <Field label="User ID">
+                <input
+                  type="text"
+                  value={phase5Form.userId}
+                  onChange={(e) =>
+                    setPhase5Form((p) => ({ ...p, userId: e.target.value }))
+                  }
+                  placeholder="demo-user"
+                  style={inputStyle}
+                />
+              </Field>
+
+              <Field label="Role">
+                <select
+                  value={phase5Form.role}
+                  onChange={(e) =>
+                    setPhase5Form((p) => ({
+                      ...p,
+                      role: e.target.value as Phase5Form["role"],
+                    }))
+                  }
+                  style={inputStyle}
+                >
+                  <option value="user">user</option>
+                  <option value="admin">admin</option>
+                  <option value="readonly">readonly</option>
+                </select>
+              </Field>
+
+              <p style={{ color: "#64748b", fontSize: "0.8rem", margin: "0 0 0.75rem" }}>
+                Requires a valid <code>ANTHROPIC_API_KEY</code> to generate a plan.
+              </p>
+
+              <button type="submit" disabled={phase5Loading} style={btnStyle}>
+                {phase5Loading ? "Running…" : "Run Autonomous Agent"}
+              </button>
+            </form>
+
+            {phase5Result !== null && <ResultBox result={phase5Result} />}
+          </Panel>
         </div>
 
         {/* Architecture overview */}
@@ -297,7 +400,13 @@ export default function DashboardPage() {
           <h2 style={{ fontSize: "1.3rem", fontWeight: 700, color: "#0f172a", marginBottom: "1rem" }}>
             Engine Architecture
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "1rem",
+            }}
+          >
             {[
               {
                 icon: "🤖",
@@ -316,6 +425,18 @@ export default function DashboardPage() {
                 title: "Deploy Layer",
                 path: "/api/deploy",
                 desc: "Vercel deploy hook trigger with status feedback",
+              },
+              {
+                icon: "🧠",
+                title: "AI Planning",
+                path: "/api/ai",
+                desc: "Natural-language decomposition into structured agent steps",
+              },
+              {
+                icon: "🛡️",
+                title: "Phase 5 Pipeline",
+                path: "/api/phase5",
+                desc: "Permissions, planning, execution, correction, and validation",
               },
               {
                 icon: "📄",
