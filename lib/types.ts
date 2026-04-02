@@ -189,6 +189,51 @@ export interface ExecuteResponse {
   executionTime: string;
   corrections?: CorrectionRecord[];
   transactionId?: string;
+// ─── Phase 5 / Pipeline Types ─────────────────────────────────────────────────
+
+export interface AuditEvent {
+  action: string;
+  status: "success" | "failure" | "skipped";
+  timestamp: string;
+  tokensUsed?: number;
+  filesCreated?: number;
+  attempts?: number;
+  details?: Record<string, unknown>;
+}
+
+export interface Phase5Request {
+  /** Natural-language description of the dashboard to create */
+  prompt: string;
+  /** Optional user identifier for rate limiting and audit logging */
+  userId?: string;
+  /** Optional role for permission checks (default: "user") */
+  role?: "admin" | "user" | "readonly";
+}
+
+export interface Phase5Response {
+  success: boolean;
+  executionId: string;
+  filesCreated: string[];
+  duration: number;
+  tokensUsed: number;
+  corrections: number;
+  auditEvents: AuditEvent[];
+  error?: string;
+}
+
+export interface PipelineExecutionResult {
+  executionId: string;
+  prompt: string;
+  userId: string;
+  role: string;
+  startTime: number;
+  endTime?: number;
+  filesCreated: string[];
+  tokensUsed: number;
+  corrections: number;
+  auditEvents: AuditEvent[];
+  success: boolean;
+  error?: string;
 }
 
 // ─── AI / LLM Types ───────────────────────────────────────────────────────────
@@ -218,5 +263,7 @@ export interface AiResponse {
   steps: AiPlanStep[];
   reasoning: string;
   estimatedTime?: string;
+  /** Tracking context injected by demo pipeline (Phase 5) */
+  dauthContext?: Record<string, unknown>;
   error?: string;
 }
