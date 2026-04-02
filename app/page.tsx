@@ -135,7 +135,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: phase5Form.prompt,
-          userId: phase5Form.userId || undefined,
+          userId: phase5Form.userId.trim() ? phase5Form.userId.trim() : undefined,
           role: phase5Form.role,
         }),
       });
@@ -198,7 +198,7 @@ export default function DashboardPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
             gap: "2rem",
           }}
         >
@@ -403,7 +403,7 @@ export default function DashboardPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: "1rem",
             }}
           >
