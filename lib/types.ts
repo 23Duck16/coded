@@ -119,6 +119,157 @@ export interface DeployResponse {
   error?: string;
 }
 
+// ─── Auth Types ───────────────────────────────────────────────────────────────
+
+export interface AuthContext {
+  userId: string;
+  role: "admin" | "user";
+  /** ISO timestamp of when the token was issued */
+  issuedAt: string;
+  /** ISO timestamp of when the token expires */
+  expiresAt: string;
+}
+
+// ─── Audit Types ──────────────────────────────────────────────────────────────
+
+export type AuditEventType =
+  | "ai.plan"
+  | "agent.execute"
+  | "workflow.run"
+  | "deploy.trigger"
+  | "auth.token_issued"
+  | "auth.token_rejected"
+  | "rate_limit.exceeded"
+  | "permission.denied";
+
+export interface AuditEvent {
+  id: string;
+  timestamp: string;
+  type: AuditEventType;
+  userId: string;
+  role: string;
+  resource?: string;
+  action?: string;
+  result: "success" | "failure" | "denied";
+  metadata?: Record<string, unknown>;
+}
+
+// ─── Execution History Types ───────────────────────────────────────────────────
+
+export type ExecutionStatus = "pending" | "running" | "success" | "failed";
+
+export interface ExecutionRecord {
+  id: string;
+  timestamp: string;
+  userId: string;
+  type: "ai" | "agent" | "workflow" | "deploy";
+  input: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  status: ExecutionStatus;
+  durationMs?: number;
+  error?: string;
+  /** Snapshot of files before execution (for rollback). null value means file did not exist. */
+  rollbackSnapshot?: Record<string, string | null>;
+  email: string;
+  role: "user" | "admin" | "service";
+  apiKey?: string;
+  permissions?: string[];
+}
+
+export interface AuthMiddlewareConfig {
+  requireAuth: boolean;
+  allowedRoles?: string[];
+  secretKey?: string;
+}
+
+// ─── Audit Log Types ──────────────────────────────────────────────────────────
+
+export interface AuditEvent {
+  id: string;
+  timestamp: Date;
+  userId: string;
+  action:
+    | "ai_planning"
+    | "code_execution"
+    | "auto_correction"
+    | "rollback"
+    | "file_write";
+  resource: string;
+  status: "success" | "failure" | "partial";
+  details: Record<string, unknown>;
+  filesAffected?: string[];
+  tokensUsed?: number;
+  duration?: number;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+// ─── Execution History Types ──────────────────────────────────────────────────
+
+export interface CorrectionRecord {
+  attempt: number;
+  errors: string[];
+  correctedAt: Date;
+}
+
+export interface ExecutionResult {
+  success: boolean;
+  filesWritten: string[];
+  errors: string[];
+  duration: number;
+}
+
+export interface ExecutionRecord {
+  id: string;
+  userId: string;
+  timestamp: Date;
+  prompt?: string;
+  planningResult?: AiResponse;
+  executionResult: ExecutionResult;
+  corrections?: CorrectionRecord[];
+  filesCreated: string[];
+  filesSizeBytes: number;
+  status: "success" | "partial_success" | "failed";
+  errorMessage?: string;
+  duration: number;
+  tokensUsed: number;
+}
+
+// ─── Permission Types ─────────────────────────────────────────────────────────
+
+export interface PermissionPolicy {
+  allowedPaths: string[];
+  blockedPaths: string[];
+  maxFileSize: number;
+  allowedActions: (
+    | "create_file"
+    | "update_file"
+    | "delete_file"
+    | "apply_template"
+    | "multi_step"
+  )[];
+}
+
+export interface PermissionCheckResult {
+  allowed: boolean;
+  reason?: string;
+  severity?: "warning" | "error";
+}
+
+// ─── Rate Limit Types ─────────────────────────────────────────────────────────
+
+export interface RateLimitConfig {
+  maxRequestsPerMinute: number;
+  maxExecutionsPerHour: number;
+  maxTokensPerDay: number;
+  burstSize: number;
+}
+
+export interface RateLimitStatus {
+  allowed: boolean;
+  remaining: number;
+  resetAt: Date;
+  quotaExceeded?: boolean;
 // ─── Diagnostic / Execution Types ─────────────────────────────────────────────
 
 export interface DiagnosticError {
