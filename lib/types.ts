@@ -270,6 +270,121 @@ export interface RateLimitStatus {
   remaining: number;
   resetAt: Date;
   quotaExceeded?: boolean;
+// ─── Diagnostic / Execution Types ─────────────────────────────────────────────
+
+export interface DiagnosticError {
+  file: string;
+  line?: number;
+  column?: number;
+  /** TypeScript error code, e.g. "TS2552" */
+  code?: string;
+  message: string;
+  severity: "error" | "warning" | "info";
+  source: "tsc" | "eslint" | "runtime";
+  /** AI-generated fix suggestion */
+  suggestion?: string;
+}
+
+export interface ExecutionResult {
+  success: boolean;
+  filesCreated: string[];
+  errors: DiagnosticError[];
+  warnings: DiagnosticError[];
+  duration: number;
+  rollbackAvailable: boolean;
+}
+
+export interface ExecutionTransaction {
+  id: string;
+  files: Array<{ path: string; content: string; originalContent?: string }>;
+  createdAt: Date;
+  status: "staged" | "committed" | "rolled_back";
+  rollbackCommitSha?: string;
+}
+
+export interface CorrectionRequest {
+  originalSteps: AiPlanStep[];
+  errors: DiagnosticError[];
+  attemptNumber: number;
+  maxAttempts: number;
+  context: Record<string, unknown>;
+}
+
+export interface CorrectionResponse {
+  correctedSteps: AiPlanStep[];
+  explanation: string;
+  /** 0–1: how confident Claude is in the fix */
+  confidence: number;
+  shouldRetry: boolean;
+}
+
+export interface ExecuteRequest {
+  steps: AiPlanStep[];
+  autoRetry?: boolean;
+  maxRetries?: number;
+  dryRun?: boolean;
+}
+
+export interface CorrectionRecord {
+  originalStep: string;
+  issue: string;
+  correction: string;
+  retryAttempt: number;
+}
+
+export interface ExecuteResponse {
+  success: boolean;
+  filesCreated: string[];
+  errors: DiagnosticError[];
+  autoFixed: boolean;
+  executionTime: string;
+  corrections?: CorrectionRecord[];
+  transactionId?: string;
+// ─── Phase 5 / Pipeline Types ─────────────────────────────────────────────────
+
+export interface AuditEvent {
+  action: string;
+  status: "success" | "failure" | "skipped";
+  timestamp: string;
+  tokensUsed?: number;
+  filesCreated?: number;
+  attempts?: number;
+  details?: Record<string, unknown>;
+}
+
+export interface Phase5Request {
+  /** Natural-language description of the dashboard to create */
+  prompt: string;
+  /** Optional user identifier for rate limiting and audit logging */
+  userId?: string;
+  /** Optional role for permission checks (default: "user") */
+  role?: "admin" | "user" | "readonly";
+}
+
+export interface Phase5Response {
+  success: boolean;
+  executionId: string;
+  filesCreated: string[];
+  duration: number;
+  tokensUsed: number;
+  corrections: number;
+  auditEvents: AuditEvent[];
+  error?: string;
+}
+
+export interface PipelineExecutionResult {
+  executionId: string;
+  prompt: string;
+  userId: string;
+  role: string;
+  startTime: number;
+  endTime?: number;
+  filesCreated: string[];
+  tokensUsed: number;
+  corrections: number;
+  auditEvents: AuditEvent[];
+  success: boolean;
+  error?: string;
 }
 
 // ─── AI / LLM Types ───────────────────────────────────────────────────────────
@@ -281,6 +396,8 @@ export interface AiPlanStep {
   action: "apply_template" | "create_file" | "update_file" | "multi_step";
   template?: string;
   path?: string;
+  /** Raw file content — used by create_file / update_file steps */
+  content?: string;
   params?: Record<string, string>;
 }
 
@@ -297,5 +414,7 @@ export interface AiResponse {
   steps: AiPlanStep[];
   reasoning: string;
   estimatedTime?: string;
+  /** Tracking context injected by demo pipeline (Phase 5) */
+  dauthContext?: Record<string, unknown>;
   error?: string;
 }

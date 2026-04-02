@@ -180,6 +180,19 @@ export async function POST(
     });
 
     return NextResponse.json(result, { status: 200 });
+    // Attach any dauthContext that was passed through for demo tracking (Phase 5)
+    const response: AiResponse = body.context?.executionId
+      ? {
+          ...result,
+          dauthContext: {
+            executionId: body.context.executionId,
+            userId: body.context.userId,
+            role: body.context.role,
+            phase: body.context.phase,
+          },
+        }
+      : result;
+    return NextResponse.json(response, { status: 200 });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Internal server error";
