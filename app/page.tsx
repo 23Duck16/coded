@@ -21,7 +21,7 @@ interface AgentForm {
 
 interface Phase5Form {
   prompt: string;
-  userId: string;
+  userId?: string;
   role: "admin" | "user" | "readonly";
 }
 
@@ -130,13 +130,13 @@ export default function DashboardPage() {
     setPhase5Result(null);
 
     try {
-      const trimmedUserId = phase5Form.userId.trim();
+      const trimmedUserId = phase5Form.userId?.trim() ?? "";
       const res = await fetch("/api/phase5", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: phase5Form.prompt,
-          userId: trimmedUserId || undefined,
+          userId: trimmedUserId !== "" ? trimmedUserId : undefined,
           role: phase5Form.role,
         }),
       });
@@ -357,7 +357,7 @@ export default function DashboardPage() {
               <Field label="User ID">
                 <input
                   type="text"
-                  value={phase5Form.userId}
+                  value={phase5Form.userId ?? ""}
                   onChange={(e) =>
                     setPhase5Form((p) => ({ ...p, userId: e.target.value }))
                   }
