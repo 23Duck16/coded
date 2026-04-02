@@ -130,12 +130,13 @@ export default function DashboardPage() {
     setPhase5Result(null);
 
     try {
+      const trimmedUserId = phase5Form.userId.trim();
       const res = await fetch("/api/phase5", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: phase5Form.prompt,
-          userId: phase5Form.userId.trim() ? phase5Form.userId.trim() : undefined,
+          userId: trimmedUserId || undefined,
           role: phase5Form.role,
         }),
       });
